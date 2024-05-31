@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>斗篷服务器管理</title>
+    <!-- 使用BootCDN加载Bootstrap 3 -->
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <h2>斗篷服务器管理</h2>
+    <p class="alert alert-info">
+        匹配规则中国家填写汉字，如不确定前往 <a href="https://www.ipuu.net/query/ip" target="_blank">https://www.ipuu.net/query/ip</a> 获取国家;
+    </p>
+    <p class="alert alert-info">
+        匹配规则中语言填写(en或zh),自行查阅请求header:Accept-Language
+    </p>
+    <p class="alert alert-info">
+        重定向地址必须http或https开头
+    </p>
+    <ul class="nav nav-tabs">
+        <li class="active"><a data-toggle="tab" href="#config">服务器配置</a></li>
+        <li><a data-toggle="tab" href="#logs">请求日志</a></li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- 服务器配置页面 -->
+        <div id="config" class="tab-pane fade in active">
+            <h3>域名管理</h3>
+            <button class="btn btn-primary" data-toggle="modal" data-target="#addServerModal">添加域名</button>
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>服务器ID</th>
+                    <th>域名</th>
+                    <th>请求域名(实际填写)</th>
+                    <th>描述</th>
+                    <th>是否审核中</th>
+                    <th>斗篷地址(审核后的真实页面)</th>
+                    <th>审核检查地址(审核中或匹配不符用户页面)</th>
+                    <th>匹配规则</th>
+
+                    <th>操作</th>
+                </tr>
+                </thead>
+
+                <tbody id="serverTableBody">
+                <!-- 动态生成的内容 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 请求日志页面 -->
+        <div id="logs" class="tab-pane fade">
+            <h3>请求日志</h3>
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>日志ID</th>
+                    <th>请求时间</th>
+                    <th>请求内容</th>
+                </tr>
+                </thead>
+                <tbody id="logTableBody">
+                <!-- 动态生成的日志行 -->
+                </tbody>
+            </table>
+            <nav>
+                <ul class="pagination">
+                    <li><a href="#">&laquo;</a></li>
+                    <li class="active"><a href="#">1</a></li>
+                    <li><a href="#">2</a></li>
+                    <li><a href="#">3</a></li>
+                    <li><a href="#">4</a></li>
+                    <li><a href="#">5</a></li>
+                    <li><a href="#">&raquo;</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- 添加服务器模态框 -->
+<div id="addServerModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">添加域名</h4>
+            </div>
+            <div class="modal-body">
+                <form id="addServerForm">
+                    <div class="form-group">
+                        <label for="serverName">服务器名称:</label>
+                        <input type="text" class="form-control" id="serverName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="serverDescription">描述:</label>
+                        <input type="text" class="form-control" id="serverDescription" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="serverIsCheck">是否审核中:</label>
+                        <input type="checkbox" class="form-control" id="serverIsCheck">
+                    </div>
+                    <div class="form-group">
+                        <label for="serverMaskRedirectUrl">斗篷地址(审核后的真实页面):</label>
+                        <input type="text" class="form-control" id="serverMaskRedirectUrl" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="serverWhiteListRedirectUrl">审核检查地址(审核中或匹配不符用户页面):</label>
+                        <input type="text" class="form-control" id="serverWhiteListRedirectUrl" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="serverMatchRule">匹配规则:</label>
+                        <div id="matchRulesContainer">
+                            <!-- 动态添加匹配规则 -->
+                        </div>
+                        <button type="button" class="btn btn-primary" id="addMatchRuleBtn">添加匹配规则</button>
+
+                    </div>
+
+
+                    <button type="submit" class="btn btn-success">提交</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑服务器模态框 -->
+<div id="editServerModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">编辑服务器</h4>
+            </div>
+            <div class="modal-body">
+                <form id="editServerForm">
+                    <div class="form-group">
+                        <label for="editServerName">域名:</label>
+                        <input type="text" class="form-control" id="editServerName" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="editServerDescription">描述:</label>
+                        <input type="text" class="form-control" id="editServerDescription" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editServerIsCheck">是否审核中:</label>
+                        <input type="checkbox" class="form-control" id="editServerIsCheck">
+                    </div>
+                    <div class="form-group">
+                        <label for="editServerMaskRedirectUrl">斗篷地址(审核后的真实页面):</label>
+                        <input type="text" class="form-control" id="editServerMaskRedirectUrl" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editServerWhiteListRedirectUrl">审核检查地址(审核中或匹配不符用户页面):</label>
+                        <input type="text" class="form-control" id="editServerWhiteListRedirectUrl" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editServerMatchRule">匹配规则:</label>
+                        <div id="editMatchRulesContainer">
+                            <!-- 动态添加匹配规则 -->
+                        </div>
+                        <button type="button" class="btn btn-primary" id="editAddMatchRuleBtn">添加匹配规则</button>
+                    </div>
+
+
+
+                    <button type="submit" class="btn btn-success">提交</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        var domianPrefix = "https://hhuut778.xyz/cloak?domainName="
+        var servers = []; // 定义全局变量
+        // 从本地服务器获取数据
+        function fetchServerData() {
+            $.ajax({
+                url: '/cloak/cloakDomainInfo/list',
+                method: 'GET',
+                success: function(data) {
+                    servers = data.data; // 更新全局变量
+                    renderServerTable(data.data);
+                },
+                error: function(error) {
+                    console.error('获取服务器数据失败:', error);
+                }
+            });
+        }
+
+        // 渲染服务器配置表格
+        function renderServerTable(data) {
+            var serverTableBody = $('#serverTableBody');
+            serverTableBody.empty();
+            data.forEach(function(server) {
+
+                var matchRules = server.matchRule.map(function(rule) {
+                    var conditionText = rule.condition ? '是' : '否';
+                    var ruleDesc = getMatchRuleDescription4List(rule.matchRuleType);
+                    return ruleDesc + ' ' + conditionText + ' ' + rule.value;
+                }).join(', ');
+
+                serverTableBody.append(
+                    '<tr>' +
+                    '<td>' + server.id + '</td>' +
+                    '<td>' + server.domainName + '</td>' +
+                   '<td>' + domianPrefix + server.domainName + ' <button class="btn btn-link btn-copy"><i class="fa fa-copy"></i></button></td>' +
+
+                    '<td>' + server.description + '</td>' +
+                    '<td>' + (server.isCheck ? '是' : '否') + '</td>' +
+                    '<td>' + server.maskRedirectUrl + '</td>' +
+                    '<td>' + server.whiteListRedirectUrl + '</td>' +
+                    '<td>' + matchRules + '</td>' +
+                    '<td>' +
+                    '<button class="btn btn-warning btn-edit" data-id="' + server.id + '">编辑</button> ' +
+                    '<button class="btn btn-danger btn-delete" data-id="' + server.id + '">删除</button>' +
+                    '</td>' +
+                    '</tr>'
+                );
+            });
+        }
+        // 绑定复制按钮的点击事件
+        $(document).on('click', '.btn-copy', function() {
+            var domain = $(this).closest('td').clone().children().remove().end().text().trim();
+            copyToClipboard(domain);
+        });
+        // 复制内容到剪贴板
+        function copyToClipboard(text) {
+            var tempInput = document.createElement('input');
+            tempInput.style.position = 'absolute';
+            tempInput.style.left = '-9999px';
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            alert('已复制: ' + text);
+        }
+
+// 获取匹配规则的描述
+        function getMatchRuleDescription(matchRuleType) {
+            switch (matchRuleType) {
+                case 'REGION':
+                    return '所属国家(中国，美国，韩国)';
+                case 'LANGUAGE':
+                    return '语言(en-英语;zh-中文 (Chinese),自行查阅请求header:Accept-Language';
+                case 'IS_MOBILE':
+                    return '是否移动设备';
+                case 'IS_PROXY':
+                    return '是否开启代理';
+                default:
+                    return '未知规则';
+            }
+        }
+
+        function getMatchRuleDescription4List(matchRuleType) {
+            switch (matchRuleType) {
+                case 'REGION':
+                    return '所属国家';
+                case 'LANGUAGE':
+                    return '语言';
+                case 'IS_MOBILE':
+                    return '是否移动设备';
+                case 'IS_PROXY':
+                    return '是否开启代理';
+                default:
+                    return '未知规则';
+            }
+        }
+    // 初始化            // 初始化页面时获取数据
+        fetchServerData();
+
+        // 添加服务器
+        $('#addServerForm').submit(function(event) {
+            event.preventDefault();
+            var newServer = {
+                domainName: $('#serverName').val(),
+                description: $('#serverDescription').val(),
+                isCheck: $('#serverIsCheck').prop('checked'),
+                maskRedirectUrl: $('#serverMaskRedirectUrl').val(),
+                whiteListRedirectUrl: $('#serverWhiteListRedirectUrl').val(),
+                matchRule: getMatchRules('matchRulesContainer'),
+                tenantId: $('#serverTenantId').val()
+        };
+            $.ajax({
+                url: '/cloak/cloakDomainInfo/add',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(newServer),
+                success: function() {
+                    fetchServerData();
+                    $('#addServerModal').modal('hide');
+                    $('#addServerForm')[0].reset(); // 重置表单
+                },
+                error: function(error) {
+                    console.error('添加服务器失败:', error);
+                }
+            });
+        });
+
+
+
+
+
+        // 编辑服务器
+        $(document).on('click', '.btn-edit', function() {
+            var serverId = $(this).data('id');
+            var server = servers.find(function(s) { return s.id === serverId; });
+
+            $('#editServerName').val(server.domainName);
+            $('#editServerDescription').val(server.description);
+            $('#editServerIsCheck').prop('checked', server.isCheck);
+            $('#editServerMaskRedirectUrl').val(server.maskRedirectUrl);
+            $('#editServerWhiteListRedirectUrl').val(server.whiteListRedirectUrl);
+
+            // 清空并重新渲染匹配规则
+            $('#editMatchRulesContainer').empty();
+            server.matchRule.forEach(function(rule) {
+                addMatchRule('editMatchRulesContainer');
+                var lastRule = $('#editMatchRulesContainer .match-rule').last();
+                lastRule.find('.match-rule-type').val(rule.matchRuleType);
+                lastRule.find('.match-rule-condition').val(rule.condition.toString());
+                lastRule.find('.match-rule-value').val(rule.value);
+            });
+
+            $('#editServerTenantId').val(server.tenantId);
+            $('#editServerForm').data('id', serverId);
+            $('#editServerModal').modal('show');
+        });
+
+// 提交编辑表单
+        $('#editServerForm').submit(function(event) {
+            event.preventDefault();
+            var serverId = $(this).data('id');
+            var updatedServer = {
+                id: serverId,
+                description: $('#editServerDescription').val(),
+                isCheck: $('#editServerIsCheck').prop('checked'),
+                maskRedirectUrl: $('#editServerMaskRedirectUrl').val(),
+                whiteListRedirectUrl: $('#editServerWhiteListRedirectUrl').val(),
+                matchRule: getMatchRules('editMatchRulesContainer'),
+            };
+            $.ajax({
+                url: '/cloak/cloakDomainInfo/update',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(updatedServer),
+                success: function() {
+                    fetchServerData();
+                    $('#editServerModal').modal('hide');
+                },
+                error: function(error) {
+                    console.error('更新服务器失败:', error);
+                }
+            });
+        });
+
+        // 删除服务器
+        $(document).on('click', '.btn-delete', function() {
+            var serverId = $(this).data('id');
+            $.ajax({
+                url: '/cloak/cloakDomainInfo/delete/' + serverId,
+                method: 'POST',
+                success: function() {
+                    fetchServerData();
+                },
+                error: function(error) {
+                    console.error('删除服务器失败:', error);
+                }
+            });
+        });
+
+
+        // 匹配规则类型枚举
+        var matchRuleTypes = [
+            { value: 'REGION', text: '所属国家' },
+            { value: 'LANGUAGE', text: '语言' },
+            { value: 'IS_MOBILE', text: '是否移动设备' },
+            { value: 'IS_PROXY', text: '是否开启代理' }
+        ];
+
+// 动态添加匹配规则
+        function addMatchRule(containerId) {
+            var container = $('#' + containerId);
+            var ruleIndex = container.children().length;
+
+            var matchRuleHtml = `
+        <div class="form-group match-rule" data-index="${ruleIndex}">
+            <select class="form-control match-rule-type">
+                ${matchRuleTypes.map(type => `<option value="${type.value}">${type.text}</option>`).join('')}
+            </select>
+            <select class="form-control match-rule-condition">
+                <option value="true">是</option>
+                <option value="false">否</option>
+            </select>
+            <input type="text" class="form-control match-rule-value" placeholder="值">
+            <button type="button" class="btn btn-danger remove-match-rule-btn">删除</button>
+        </div>
+    `;
+
+            container.append(matchRuleHtml);
+        }
+
+        // 动态删除匹配规则
+        $(document).on('click', '.remove-match-rule-btn', function() {
+            $(this).closest('.match-rule').remove();
+        });
+
+        // 添加服务器时添加匹配规则
+        $('#addMatchRuleBtn').click(function() {
+            addMatchRule('matchRulesContainer');
+        });
+
+// 编辑服务器时添加匹配规则
+        $('#editAddMatchRuleBtn').click(function() {
+            addMatchRule('editMatchRulesContainer');
+        });
+
+        // 获取匹配规则
+        function getMatchRules(containerId) {
+            var matchRules = [];
+            $('#' + containerId + ' .match-rule').each(function() {
+                var matchRuleType = $(this).find('.match-rule-type').val();
+                var condition = $(this).find('.match-rule-condition').val() === 'true';
+                var value = $(this).find('.match-rule-value').val();
+                matchRules.push({
+                    matchRuleType: matchRuleType,
+                    condition: condition,
+                    value: value
+                });
+            });
+            return matchRules;
+        }
+
+
+    });
+</script>
+</body>
+</html>
